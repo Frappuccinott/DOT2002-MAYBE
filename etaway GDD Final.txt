@@ -1,0 +1,33 @@
+Oyunun adý : Getaway
+
+Hikaye : Bob hapishaneden kaçmayý baþarýr ve kendini ýssýz yollara býrakýr. Yol üstünde bulduðu döküntü araba ile yola koyulan Bob, eve dönme umudu ile uzun yollarý aþacak, arabasýnýn eksik parçalarýný yenileyerek þüphe çekmeyen ve düzgün çalýþan bir araç ile evine dönecektir
+
+Mekanikler
+
+Bob : hareket etme, zýplama, bobbing, nesneler ile etkileþim çömelme, koþma, araba sürebilme, araç iç panel kontrolleri
+
+Araba : hareket etme, tamir olabilme, parçalarýn daðýlabilmesi, parça deðiþimi yapýlabilme, radyo, aracýn çarpmasý sonucu daðýlmasý
+
+Oynanýþ 
+
+Bölümlerde araç parçalarýnýn bulunabileceði mekanlar olacak. Benzinlik, tamirci dükkaný, süpermarket, garaj, araç satýþ dairesi gibi.
+
+
+Oynanýþ döngüsü þöyle iþliyor
+
+Aracý çalýþtýr, eve giden rotayý takip et ve bunu yaparken aracýn saðlam kaldýðýndan emin ol. Benzin bul, daðýlan parçalarý tamir et veya deðiþtir, eksik parçalarýn da yenisini bul. Yola devam et. Araba haricinde Bob un da kendi ihtiyaçlarýný gidermesi gerekiyor. Su ve besin bulup düzenli tüketmesi gerekiyor.
+
+Bölümler
+
+Büyük ve kapsamlý tek bir bölüm olacak
+Bölümde benzinlik, tamirci dükkaný, süpermarket, garaj, araç satýþ dairesi gibi dükkanlar daðýtýlacak
+
+Bölüm ilerledikçe çorak araziden sahil þeridine, ormanlýk alanlar ve engebeli yollarla devam edecek
+
+Çevre biyomuna göre doða unsurlarý barýndýracak, aðaçlar , kayalar gibi.
+
+Renk paleti
+
+Bölüm atmosferini yansýtan renkler tercih edilecek
+
+Çorak bölgelerde sarý kýrmýzý, sahil bölgelerinde mavi ve sarý, ormanlýk alanda yeþil, kahverengi, gri gibi
