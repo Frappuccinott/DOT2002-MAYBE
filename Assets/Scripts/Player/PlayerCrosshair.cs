@@ -16,8 +16,11 @@ public class PlayerCrosshair : MonoBehaviour
     [Tooltip("Crosshair ortasındaki boşluk (piksel)")]
     [SerializeField] private float gap = 4f;
 
-    [Tooltip("Crosshair rengi")]
-    [SerializeField] private Color color = Color.white;
+    [Tooltip("Varsayılan crosshair rengi")]
+    [SerializeField] private Color defaultColor = Color.white;
+
+    [Tooltip("Etkileşim mümkünken crosshair rengi")]
+    [SerializeField] private Color interactableColor = Color.green;
 
     [Tooltip("Crosshair dış çizgi (gölge) rengi")]
     [SerializeField] private Color outlineColor = new Color(0f, 0f, 0f, 0.5f);
@@ -28,12 +31,17 @@ public class PlayerCrosshair : MonoBehaviour
     // Çizim için texture
     private Texture2D crosshairTexture;
 
+    // Aktif crosshair rengi (varsayılan veya etkileşim rengi)
+    private Color currentColor;
+
     private void Awake()
     {
         // 1x1 beyaz texture oluştur (renklendirme için)
         crosshairTexture = new Texture2D(1, 1);
         crosshairTexture.SetPixel(0, 0, Color.white);
         crosshairTexture.Apply();
+
+        currentColor = defaultColor;
     }
 
     private void OnDestroy()
@@ -56,7 +64,7 @@ public class PlayerCrosshair : MonoBehaviour
         }
 
         // Ana crosshair çizgileri
-        DrawCrosshair(centerX, centerY, color, 0f);
+        DrawCrosshair(centerX, centerY, currentColor, 0f);
     }
 
     /// <summary>
@@ -108,5 +116,15 @@ public class PlayerCrosshair : MonoBehaviour
 
         // GUI rengini sıfırla
         GUI.color = Color.white;
+    }
+
+    /// <summary>
+    /// Etkileşim durumuna göre crosshair rengini değiştirir.
+    /// PlayerInteraction tarafından her frame çağrılır.
+    /// </summary>
+    /// <param name="canInteract">Bakılan objede etkileşim mümkün mü?</param>
+    public void SetInteractable(bool canInteract)
+    {
+        currentColor = canInteract ? interactableColor : defaultColor;
     }
 }

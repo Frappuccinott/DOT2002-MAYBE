@@ -26,6 +26,14 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
+    #region Carry Settings
+
+    [Header("Taşıma Ayarları")]
+    [Tooltip("Ağır parça taşırken hız çarpanı (Inspector'dan ayarlanmaz, kod tarafından set edilir)")]
+    private float carrySpeedMultiplier = 1f;
+
+    #endregion
+
     #region Jump Settings
 
     [Header("Zıplama Ayarları")]
@@ -108,10 +116,22 @@ public class PlayerController : MonoBehaviour
     {
         get
         {
-            if (isCrouching) return crouchSpeed;
-            if (IsSprinting) return runSpeed;
-            return walkSpeed;
+            float baseSpeed;
+            if (isCrouching) baseSpeed = crouchSpeed;
+            else if (IsSprinting) baseSpeed = runSpeed;
+            else baseSpeed = walkSpeed;
+
+            return baseSpeed * carrySpeedMultiplier;
         }
+    }
+
+    /// <summary>
+    /// Taşıma hız çarpanını ayarlar. Motor gibi ağır parçalar için kullanılır.
+    /// 1.0 = normal hız, 0.5 = yarı hız.
+    /// </summary>
+    public void SetCarrySpeedMultiplier(float multiplier)
+    {
+        carrySpeedMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
     }
 
     private void Awake()
