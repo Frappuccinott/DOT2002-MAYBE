@@ -1,17 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Arabanın üzerindeki parça yerleştirme noktası.
-/// F tuşuyla parça yerleştirme ve sökme.
-/// Oyuncu doğru parçayı taşırken imleci slot'a yöneltince saydam yeşil önizleme gösterir.
-///
-/// Kurulum:
-///   1. Arabanın child'ı olarak boş GameObject oluştur
-///   2. Bu scripti ekle
-///   3. Accepted Part Type = hangi parçayı kabul edecek
-///   4. Part Visual = takılınca görünecek 3D model (child olarak, başta gizli)
-///   5. Bir Collider ekle (BoxCollider vb.)
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class CarPartSlot : MonoBehaviour, IInteractable
 {
@@ -26,12 +14,10 @@ public class CarPartSlot : MonoBehaviour, IInteractable
     [Header("Yeşil Önizleme")]
     [SerializeField] private Color previewColor = new Color(0f, 1f, 0f, 0.35f);
 
-    // Durum
     private bool isInstalled;
     private PickupableCarPart installedPart;
     private PlayerInteraction cachedPlayer;
 
-    // Önizleme
     private Renderer[] renderers;
     private Material[][] originalMaterials;
     private Material previewMaterial;
@@ -39,8 +25,6 @@ public class CarPartSlot : MonoBehaviour, IInteractable
 
     public CarPartType AcceptedPartType => acceptedPartType;
     public bool IsInstalled => isInstalled;
-
-    #region IInteractable
 
     public string InteractionPrompt => isInstalled ? removePromptText : installPromptText;
     public InteractionType Type => InteractionType.Pickup;
@@ -52,7 +36,6 @@ public class CarPartSlot : MonoBehaviour, IInteractable
             if (cachedPlayer == null)
                 cachedPlayer = FindFirstObjectByType<PlayerInteraction>();
             if (cachedPlayer == null) return false;
-
             return isInstalled
                 ? !cachedPlayer.HasCarPart
                 : cachedPlayer.HasCarPart && cachedPlayer.HeldPartType == acceptedPartType;
@@ -61,20 +44,11 @@ public class CarPartSlot : MonoBehaviour, IInteractable
 
     public void Interact() { }
 
-    #endregion
-
-    #region Install / Uninstall
-
-    /// <summary>
-    /// Parçayı slot'a yerleştirir.
-    /// partVisual varsa onu gösterir, yoksa parçanın modelini slot pozisyonuna taşır.
-    /// </summary>
     public void Install(PickupableCarPart part)
     {
         isInstalled = true;
         installedPart = part;
 
-        // Preview'u kapat
         if (isPreviewing) HidePreview();
 
         if (partVisual != null)
@@ -85,7 +59,6 @@ public class CarPartSlot : MonoBehaviour, IInteractable
         }
         else if (part != null)
         {
-            // partVisual yoksa parçanın kendisini slot pozisyonuna yerleştir
             GameObject obj = part.gameObject;
             obj.SetActive(true);
             obj.transform.SetParent(transform);
@@ -93,26 +66,17 @@ public class CarPartSlot : MonoBehaviour, IInteractable
             obj.transform.localScale = Vector3.one;
 
             Rigidbody rb = obj.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.isKinematic = true;
-                rb.useGravity = false;
-            }
+            if (rb != null) { rb.isKinematic = true; rb.useGravity = false; }
 
             SetCollidersEnabled(obj, false);
         }
 
         GetComponentInParent<CarAssemblyManager>()?.OnPartInstalled(acceptedPartType);
-        Debug.Log($"[CarPartSlot] {acceptedPartType} yerleştirildi!");
     }
 
-    /// <summary>
-    /// Takılı parçayı söker ve döndürür.
-    /// </summary>
     public PickupableCarPart Uninstall()
     {
         isInstalled = false;
-
         if (partVisual != null) partVisual.SetActive(false);
 
         PickupableCarPart part = installedPart;
@@ -127,28 +91,17 @@ public class CarPartSlot : MonoBehaviour, IInteractable
         }
 
         GetComponentInParent<CarAssemblyManager>()?.OnPartRemoved(acceptedPartType);
-        Debug.Log($"[CarPartSlot] {acceptedPartType} söküldü!");
         return part;
     }
 
-    #endregion
-
-    #region Önizleme
-
-    /// <summary>
-    /// PlayerInteraction'ın raycast'i bu slot'a geldiğinde çağrılır.
-    /// Doğru parça eldeyse yeşil preview gösterir.
-    /// </summary>
     public void SetLookedAt(bool isLooking, bool hasCorrectPart)
     {
         if (partVisual == null || isInstalled) return;
 
         bool shouldPreview = isLooking && hasCorrectPart;
 
-        if (shouldPreview && !isPreviewing)
-            ShowPreview();
-        else if (!shouldPreview && isPreviewing)
-            HidePreview();
+        if (shouldPreview && !isPreviewing) ShowPreview();
+        else if (!shouldPreview && isPreviewing) HidePreview();
     }
 
     private void Start()
@@ -197,7 +150,15 @@ public class CarPartSlot : MonoBehaviour, IInteractable
     private void ShowPreview()
     {
         partVisual.SetActive(true);
-        ApplyPreviewMaterials();
+        if (renderers != null && previewMaterial != null)
+        {
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Material[] mats = new Material[renderers[i].sharedMaterials.Length];
+                for (int j = 0; j < mats.Length; j++) mats[j] = previewMaterial;
+                renderers[i].materials = mats;
+            }
+        }
         isPreviewing = true;
     }
 
@@ -208,17 +169,6 @@ public class CarPartSlot : MonoBehaviour, IInteractable
         isPreviewing = false;
     }
 
-    private void ApplyPreviewMaterials()
-    {
-        if (renderers == null || previewMaterial == null) return;
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            Material[] mats = new Material[renderers[i].sharedMaterials.Length];
-            for (int j = 0; j < mats.Length; j++) mats[j] = previewMaterial;
-            renderers[i].materials = mats;
-        }
-    }
-
     private void RestoreOriginalMaterials()
     {
         if (renderers == null || originalMaterials == null) return;
@@ -226,20 +176,14 @@ public class CarPartSlot : MonoBehaviour, IInteractable
             renderers[i].materials = originalMaterials[i];
     }
 
-    #endregion
-
-    #region Yardımcı
+    private void OnDestroy()
+    {
+        if (previewMaterial != null) Destroy(previewMaterial);
+    }
 
     private static void SetCollidersEnabled(GameObject obj, bool enabled)
     {
         foreach (Collider col in obj.GetComponentsInChildren<Collider>())
             col.enabled = enabled;
     }
-
-    private void OnDestroy()
-    {
-        if (previewMaterial != null) Destroy(previewMaterial);
-    }
-
-    #endregion
 }
