@@ -1,7 +1,8 @@
 public enum FluidType
 {
     Gasoline,
-    MotorOil
+    MotorOil,
+    Coolant
 }
 
 public static class FluidTypeExtensions
@@ -12,6 +13,7 @@ public static class FluidTypeExtensions
         {
             FluidType.Gasoline => "Gasoline",
             FluidType.MotorOil => "Motor Oil",
+            FluidType.Coolant => "Coolant",
             _ => type.ToString()
         };
     }

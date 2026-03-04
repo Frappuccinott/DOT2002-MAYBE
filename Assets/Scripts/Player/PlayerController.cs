@@ -59,6 +59,16 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
+    #region Sit Settings
+
+    [Header("Oturma Ayarları")]
+    [Tooltip("Otururken kameranın ve bedenin ineceğin hedef yükseklik.")]
+    [SerializeField] private float sitHeight = 1.2f;
+    [Tooltip("Koltuk merkezine çekilme hızı")]
+    [SerializeField] private float sitLerpSpeed = 10f;
+
+    #endregion
+
     // Bileşen referansları
     private CharacterController controller;
     private PlayerInputActions inputActions;
@@ -71,6 +81,12 @@ public class PlayerController : MonoBehaviour
     private bool isSprinting;
     private bool isCrouching;
     private float targetHeight;
+
+    // Oturma durum değişkenleri
+    private bool isSitting;
+    private bool isStandingUp;
+    private Transform currentSeat;
+    private Vector3 standPosition;
 
     // Başlangıç CharacterController ayarları
     private Vector3 defaultCenter;
@@ -92,9 +108,24 @@ public class PlayerController : MonoBehaviour
     public bool IsCrouching => isCrouching;
 
     /// <summary>
+    /// Karakterin şu an oturduğunu döndürür.
+    /// </summary>
+    public bool IsSitting => isSitting;
+    
+    /// <summary>
+    /// Karakterin oturduğu koltuğu döndürür.
+    /// </summary>
+    public Transform CurrentSeat => currentSeat;
+
+    /// <summary>
+    /// Karakterin ayağa kalktığında geçeceği hedef pozisyon.
+    /// </summary>
+    public Vector3 StandPosition => standPosition;
+
+    /// <summary>
     /// Karakterin hareket edip etmediğini döndürür.
     /// </summary>
-    public bool IsMoving => currentMoveInput.sqrMagnitude > 0.01f;
+    public bool IsMoving => currentMoveInput.sqrMagnitude > 0.01f && !isSitting;
 
     /// <summary>
     /// Eğilme oranını döndürür (0 = ayakta, 1 = tam eğilmiş).
@@ -181,9 +212,82 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (isSitting)
+        {
+            HandleSitLerp();
+            return;
+        }
+        else if (isStandingUp)
+        {
+            HandleStandUpLerp();
+            return;
+        }
+
         HandleMovement();
         HandleGravity();
         HandleCrouch();
+    }
+
+    private void HandleSitLerp()
+    {
+        if (currentSeat != null)
+        {
+            // Pürüzsüzce koltuğa çekil
+            transform.position = Vector3.Lerp(transform.position, currentSeat.position, sitLerpSpeed * Time.deltaTime);
+
+            // Yüksekliği oturma yüksekliğine çek (eğilme mantığına benzer)
+            float currentH = controller.height;
+            float newH = Mathf.Lerp(currentH, sitHeight, crouchTransitionSpeed * Time.deltaTime);
+            float hDiff = defaultHeight - newH;
+            controller.height = newH;
+            controller.center = defaultCenter - new Vector3(0f, hDiff / 2f, 0f);
+        }
+    }
+
+    public void Sit(Transform seatPoint)
+    {
+        if (isSitting) return;
+
+        isSitting = true;
+        currentSeat = seatPoint;
+        standPosition = transform.position;
+
+        // Fiziği/Hareketi Kapat
+        controller.enabled = false;
+
+        // Bakışı oturma yönüne çevir
+        GetComponent<PlayerLook>()?.SnapToSeatLook(seatPoint);
+    }
+
+    public void StandUp()
+    {
+        if (!isSitting) return;
+
+        isSitting = false;
+        isStandingUp = true;
+        currentSeat = null;
+        
+        GetComponent<PlayerLook>()?.StopSnapping();
+    }
+
+    private void HandleStandUpLerp()
+    {
+        // Pürüzsüzce eski stand pozisyonuna çekil
+        transform.position = Vector3.Lerp(transform.position, standPosition, sitLerpSpeed * Time.deltaTime);
+
+        // Yüksekliği stand yüksekliğine çek
+        float currentH = controller.height;
+        float newH = Mathf.Lerp(currentH, standHeight, crouchTransitionSpeed * Time.deltaTime);
+        float hDiff = defaultHeight - newH;
+        controller.height = newH;
+        controller.center = defaultCenter - new Vector3(0f, hDiff / 2f, 0f);
+
+        // Hedefe yeterince yaklaştıysak serbest bırak
+        if (Vector3.Distance(transform.position, standPosition) < 0.05f && Mathf.Abs(newH - standHeight) < 0.05f)
+        {
+            isStandingUp = false;
+            controller.enabled = true; // Fiziği Geri Aç
+        }
     }
 
     /// <summary>
@@ -255,8 +359,8 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void OnJump(InputAction.CallbackContext context)
     {
-        // Yerdeyken ve eğilmiyorken zıpla
-        if (controller.isGrounded && !isCrouching)
+        // Yerdeyken ve oturup eğilmiyorken zıpla
+        if (controller.isGrounded && !isCrouching && !isSitting)
         {
             velocity.y = jumpForce;
         }
@@ -283,6 +387,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void OnCrouchStarted(InputAction.CallbackContext context)
     {
+        if (isSitting) return;
         isCrouching = true;
         targetHeight = crouchHeight;
     }

@@ -5,7 +5,7 @@ public class PickupableCarPart : MonoBehaviour, IInteractable
 {
     [Header("Parça Ayarları")]
     [SerializeField] private CarPartType partType;
-    [SerializeField] private string promptText = "Parçayı Al [F]";
+    [SerializeField] private string promptText = "Grab Part [F]";
 
     private PlayerInteraction cachedPlayer;
 

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Collider))]
-public abstract class CarFluidTank : MonoBehaviour, IInteractable
+public class CarFluidTank : MonoBehaviour, IInteractable
 {
     [Header("Depo Ayarları")]
     [SerializeField] private FluidType acceptedFluidType = FluidType.Gasoline;
@@ -16,7 +16,7 @@ public abstract class CarFluidTank : MonoBehaviour, IInteractable
     public bool IsFull => currentFluid >= maxCapacity;
     public float RemainingSpace => maxCapacity - currentFluid;
 
-    public string InteractionPrompt => $"{acceptedFluidType.GetDisplayName()} Doldur [E]";
+    public string InteractionPrompt => $"Fill {acceptedFluidType.GetDisplayName()} [E]";
     public InteractionType Type => InteractionType.Interact;
 
     public bool CanInteract

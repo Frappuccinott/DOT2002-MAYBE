@@ -27,6 +27,9 @@ public class PlayerLook : MonoBehaviour
 
     // Dahili durum
     private float verticalRotation = 0f;
+    private bool isSnappingToSeat = false;
+    private Quaternion targetPlayerRotation;
+    private Quaternion targetCameraRotation;
 
     private void Awake()
     {
@@ -75,22 +78,54 @@ public class PlayerLook : MonoBehaviour
         HandleLook();
     }
 
+    public void SnapToSeatLook(Transform seatPoint)
+    {
+        Vector3 flatForward = seatPoint.forward;
+        flatForward.y = 0f;
+        if (flatForward.sqrMagnitude > 0.001f)
+            targetPlayerRotation = Quaternion.LookRotation(flatForward);
+        else
+            targetPlayerRotation = transform.rotation;
+
+        targetCameraRotation = Quaternion.Euler(0f, 0f, 0f); // İleri bak
+        isSnappingToSeat = true;
+    }
+
+    public void StopSnapping()
+    {
+        isSnappingToSeat = false;
+    }
+
     /// <summary>
-    /// Mouse girdisine göre bakış açısını günceller.
+    /// Mouse girdisine göre bakış açısını günceller veya oturma eylemi sırasında pürüzsüz kamera geçişi yapar.
     /// </summary>
     private void HandleLook()
     {
         if (cameraTransform == null) return;
 
+        if (isSnappingToSeat)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetPlayerRotation, 10f * Time.deltaTime);
+            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation, targetCameraRotation, 10f * Time.deltaTime);
+            verticalRotation = Mathf.Lerp(verticalRotation, 0f, 10f * Time.deltaTime);
+
+            if (Quaternion.Angle(transform.rotation, targetPlayerRotation) < 1f &&
+                Quaternion.Angle(cameraTransform.localRotation, targetCameraRotation) < 1f)
+            {
+                isSnappingToSeat = false; // Geçiş bitti, serbest bırak
+            }
+            return;
+        }
+
         // Look action'dan mouse delta'sını al
         Vector2 lookInput = inputActions.Player.Look.ReadValue<Vector2>();
 
         // Yatay döndürme (player objesini Y ekseninde döndür)
-        float horizontalRotation = lookInput.x * mouseSensitivity * Time.deltaTime;
+        float horizontalRotation = lookInput.x * mouseSensitivity;
         transform.Rotate(Vector3.up * horizontalRotation);
 
         // Dikey döndürme (kamerayı X ekseninde döndür, sınırlı)
-        verticalRotation -= lookInput.y * mouseSensitivity * Time.deltaTime;
+        verticalRotation -= lookInput.y * mouseSensitivity;
         verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
         cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }

@@ -52,6 +52,11 @@ public class CarAssemblyManager : MonoBehaviour
         installedParts.Remove(partType);
     }
 
+    public bool IsPartInstalled(CarPartType partType)
+    {
+        return installedParts.Contains(partType);
+    }
+
     private void OnAssemblyComplete()
     {
         Debug.Log("[CarAssembly] Araba montajı tamamlandı!");

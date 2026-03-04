@@ -20,9 +20,9 @@ public class PlayerInteraction : MonoBehaviour
     [Header("Sıvı Aktarımı")]
     [SerializeField] private float fluidTransferRate = 2f;
 
-    [Header("Etkileşim Metinleri")]
-    [SerializeField] private string takeFluidContainerPrompt = "Press [F] to take";
-    [SerializeField] private string takeCarPartPrompt = "Press [F] to take";
+    [Header("Etkileşim Metinleri (İngilizce)")]
+    [SerializeField] private string takeFluidContainerPrompt = "Press [F] to grab";
+    [SerializeField] private string takeCarPartPrompt = "Press [F] to grab";
     [SerializeField] private string dropPrompt = "Press [F] to drop";
     [SerializeField] private string installPartPrompt = "Press [F] to install";
     [SerializeField] private string removePartPrompt = "Press [F] to remove";
@@ -40,10 +40,15 @@ public class PlayerInteraction : MonoBehaviour
     private HingeDoor currentDoor;
     private CarPartSlot lastLookedSlot;
     private CarFluidTank currentFluidTank;
+    private CarIgnition currentIgnition;
+    private CarSeat currentSeat;
+    private bool isLookingAtCarInterior;
 
     private PickupableCarPart heldPart;
     private Vector3 heldPartOriginalScale;
     private float currentHoldDistance;
+
+    private float _cameraDefaultYPosition = 0f;
 
     private FluidContainer heldFluidContainer;
     private Vector3 heldFluidContainerOriginalScale;
@@ -67,6 +72,12 @@ public class PlayerInteraction : MonoBehaviour
             playerCamera = GetComponentInChildren<Camera>();
             if (playerCamera == null) Debug.LogError("[PlayerInteraction] Kamera bulunamadı!");
         }
+        
+        if (playerCamera != null)
+        {
+            _cameraDefaultYPosition = playerCamera.transform.localPosition.y;
+        }
+
         if (playerController == null) playerController = GetComponent<PlayerController>();
     }
 
@@ -111,6 +122,9 @@ public class PlayerInteraction : MonoBehaviour
         currentInteractable = null;
         currentDoor = null;
         currentFluidTank = null;
+        currentIgnition = null;
+        currentSeat = null;
+        isLookingAtCarInterior = false;
         CarPartSlot lookedSlot = null;
 
         if (playerCamera == null) return;
@@ -122,12 +136,29 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
+        if (playerController.IsSitting && playerController.CurrentSeat != null)
+        {
+            Rigidbody seatRb = playerController.CurrentSeat.GetComponentInParent<Rigidbody>();
+            Rigidbody hitRb = hit.collider.attachedRigidbody;
+            CarStartSystem hitCar = hit.collider.GetComponentInParent<CarStartSystem>();
+
+            if ((seatRb != null && hitRb == seatRb) ||
+                hit.collider.transform.root == playerController.CurrentSeat.root ||
+                hitCar != null)
+            {
+                isLookingAtCarInterior = true;
+            }
+        }
+
         currentInteractable = hit.collider.GetComponent<IInteractable>();
+
+        currentSeat = hit.collider.GetComponent<CarSeat>();
 
         HingeDoor door = hit.collider.GetComponent<HingeDoor>();
         if (door != null && door.CanOperate) currentDoor = door;
 
         currentFluidTank = hit.collider.GetComponent<CarFluidTank>();
+        currentIgnition = hit.collider.GetComponent<CarIgnition>();
         lookedSlot = hit.collider.GetComponent<CarPartSlot>();
 
         if (lookedSlot != lastLookedSlot)
@@ -191,8 +222,26 @@ public class PlayerInteraction : MonoBehaviour
 
         if (isInteractHeld && !interactPressedLastFrame)
         {
-            if (currentDoor != null && currentDoor.Type == HingeDoor.DoorType.FuelCap && !HasFluidContainer)
+            if (currentIgnition != null)
+            {
+                currentIgnition.TriggerIgnition();
+            }
+            else if (currentDoor != null && currentDoor.Type == HingeDoor.DoorType.FuelCap && !HasFluidContainer)
+            {
                 currentDoor.ToggleOpen();
+            }
+            else if (playerController.IsSitting && !isLookingAtCarInterior && currentIgnition == null && currentDoor == null)
+            {
+                // Çıkış yolu kapalı mı kontrolü (kapı açık mı?)
+                if (CanExitVehicle())
+                {
+                    playerController.StandUp();
+                }
+            }
+            else if (currentSeat != null && !HasCarPart && !HasFluidContainer)
+            {
+                playerController.Sit(currentSeat.SitPoint);
+            }
         }
         interactPressedLastFrame = isInteractHeld;
 
@@ -208,6 +257,31 @@ public class PlayerInteraction : MonoBehaviour
         {
             isTransferring = false;
         }
+    }
+
+    #endregion
+
+    #region Araç İçi Kontrolleri
+
+    private bool CanExitVehicle()
+    {
+        if (playerCamera == null || playerController == null) return false;
+
+        // Karakterin kafasından, ineceği yerin tam merkezine doğru bir Linecast atılır
+        Vector3 headPos = playerCamera.transform.position;
+        Vector3 exitPos = playerController.StandPosition;
+
+        // interactionLayer genellikle "Interactable" ve "Default"u kapsar. 
+        // Burada Default (Duvarlar vb) ve Interactable (Kapılar vb) katmanlarını kontrol etmeliyiz.
+        LayerMask obstacleLayer = ~0; // Şimdilik her şeye çarpmasını istiyoruz (kapı dahil)
+
+        // Linecast, bir objeye çarpıyorsa ve bu obje aracın (veya çevrenin) bir engeli ise çıkışı engelle
+        if (Physics.Linecast(headPos, exitPos, obstacleLayer))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     #endregion
@@ -324,8 +398,12 @@ public class PlayerInteraction : MonoBehaviour
     private void UpdateHeldFluidContainerPosition()
     {
         if (playerCamera == null || heldFluidContainer == null) return;
-        Vector3 target = playerCamera.transform.position + playerCamera.transform.forward * currentHoldDistance;
-        heldFluidContainer.transform.position = Vector3.Lerp(heldFluidContainer.transform.position, target, 15f * Time.deltaTime);
+        
+        float headBobOffset = playerCamera.transform.localPosition.y - _cameraDefaultYPosition;
+        Vector3 baseTarget = playerCamera.transform.position + playerCamera.transform.forward * currentHoldDistance;
+        Vector3 finalTarget = baseTarget + (playerCamera.transform.up * headBobOffset);
+
+        heldFluidContainer.transform.position = Vector3.Lerp(heldFluidContainer.transform.position, finalTarget, 15f * Time.deltaTime);
         heldFluidContainer.transform.rotation = playerCamera.transform.rotation;
     }
 
@@ -364,6 +442,23 @@ public class PlayerInteraction : MonoBehaviour
 
     private void UpdateInteractionPrompt(InteractionTooltipUI tooltip)
     {
+        if (playerController.IsSitting)
+        {
+            if (currentIgnition != null) { tooltip.ShowPrompt(currentIgnition.InteractionPrompt); return; }
+            if (currentDoor != null && currentDoor.Type == HingeDoor.DoorType.FuelCap) { tooltip.ShowPrompt(openCloseFuelCapPrompt); return; }
+            if (currentDoor != null) { tooltip.ShowPrompt(dragDoorPrompt); return; }
+
+            if (!isLookingAtCarInterior && CanExitVehicle())
+            {
+                tooltip.ShowPrompt("Get Out [E]");
+            }
+            else
+            {
+                tooltip.HidePrompt();
+            }
+            return;
+        }
+
         if (HasFluidContainer)
         {
             if (currentFluidTank != null &&
@@ -385,6 +480,8 @@ public class PlayerInteraction : MonoBehaviour
         if (currentInteractable is FluidContainer) { tooltip.ShowPrompt(takeFluidContainerPrompt); return; }
         if (currentInteractable is PickupableCarPart) { tooltip.ShowPrompt(takeCarPartPrompt); return; }
         if (currentInteractable is CarPartSlot s && s.IsInstalled) { tooltip.ShowPrompt(removePartPrompt); return; }
+        if (currentSeat != null && !HasCarPart && !HasFluidContainer) { tooltip.ShowPrompt(currentSeat.InteractionPrompt); return; }
+        if (currentIgnition != null) { tooltip.ShowPrompt(currentIgnition.InteractionPrompt); return; }
         if (currentDoor != null && currentDoor.Type == HingeDoor.DoorType.FuelCap) { tooltip.ShowPrompt(openCloseFuelCapPrompt); return; }
         if (currentDoor != null) { tooltip.ShowPrompt(dragDoorPrompt); return; }
 
@@ -408,8 +505,12 @@ public class PlayerInteraction : MonoBehaviour
     private void UpdateHeldPartPosition()
     {
         if (playerCamera == null) return;
-        Vector3 target = playerCamera.transform.position + playerCamera.transform.forward * currentHoldDistance;
-        heldPart.transform.position = Vector3.Lerp(heldPart.transform.position, target, 15f * Time.deltaTime);
+
+        float headBobOffset = playerCamera.transform.localPosition.y - _cameraDefaultYPosition;
+        Vector3 baseTarget = playerCamera.transform.position + playerCamera.transform.forward * currentHoldDistance;
+        Vector3 finalTarget = baseTarget + (playerCamera.transform.up * headBobOffset);
+
+        heldPart.transform.position = Vector3.Lerp(heldPart.transform.position, finalTarget, 15f * Time.deltaTime);
         heldPart.transform.rotation = playerCamera.transform.rotation;
     }
 

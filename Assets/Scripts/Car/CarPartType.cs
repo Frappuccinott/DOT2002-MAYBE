@@ -17,5 +17,6 @@ public enum CarPartType
     WheelFrontLeft,
     WheelFrontRight,
     WheelRearLeft,
-    WheelRearRight
+    WheelRearRight,
+    Radiator
 }

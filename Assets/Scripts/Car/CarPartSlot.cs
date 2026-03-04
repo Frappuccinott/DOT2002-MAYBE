@@ -7,9 +7,9 @@ public class CarPartSlot : MonoBehaviour, IInteractable
     [SerializeField] private CarPartType acceptedPartType;
     [SerializeField] private GameObject partVisual;
 
-    [Header("Etkileşim Metinleri")]
-    [SerializeField] private string installPromptText = "Parçayı Yerleştir [F]";
-    [SerializeField] private string removePromptText = "Parçayı Sök [F]";
+    [Header("Interaction Strings")]
+    [SerializeField] private string installPromptText = "Install [F]";
+    [SerializeField] private string removePromptText = "Remove [F]";
 
     [Header("Yeşil Önizleme")]
     [SerializeField] private Color previewColor = new Color(0f, 1f, 0f, 0.35f);

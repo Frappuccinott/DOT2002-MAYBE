@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Collider))]
-public abstract class FluidContainer : MonoBehaviour, IInteractable
+public class FluidContainer : MonoBehaviour, IInteractable
 {
     [Header("Sıvı Ayarları")]
     [SerializeField] private FluidType fluidType = FluidType.Gasoline;
@@ -20,7 +20,7 @@ public abstract class FluidContainer : MonoBehaviour, IInteractable
     public FluidType FluidType => fluidType;
     public bool IsEmpty => currentFluid <= 0f;
 
-    public string InteractionPrompt => $"{fluidType.GetDisplayName()} Bidonu Al [F]";
+    public string InteractionPrompt => $"Grab {fluidType.GetDisplayName()} [F]";
     public InteractionType Type => InteractionType.Pickup;
 
     public bool CanInteract
