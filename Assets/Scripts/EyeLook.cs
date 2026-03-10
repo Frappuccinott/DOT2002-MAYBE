@@ -1,9 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// "Eye" adlý objeye ekle.
-/// Karakteri takip eder ve ona doðru bakar.
-/// </summary>
 public class EyeLook : MonoBehaviour
 {
     [Header("Referanslar")]
@@ -11,7 +7,7 @@ public class EyeLook : MonoBehaviour
     public Transform target;
 
     [Header("Ayarlar")]
-    [Tooltip("Gözün hedefe dönme hýzý (0 = anlýk)")]
+    [Tooltip("Gï¿½zï¿½n hedefe dï¿½nme hï¿½zï¿½ (0 = anlï¿½k)")]
     public float rotationSpeed = 10f;
 
     void Update()
