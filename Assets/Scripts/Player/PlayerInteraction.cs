@@ -72,7 +72,7 @@ public class PlayerInteraction : MonoBehaviour
             playerCamera = GetComponentInChildren<Camera>();
             if (playerCamera == null) Debug.LogError("[PlayerInteraction] Kamera bulunamadı!");
         }
-        
+
         if (playerCamera != null)
         {
             _cameraDefaultYPosition = playerCamera.transform.localPosition.y;
@@ -398,7 +398,7 @@ public class PlayerInteraction : MonoBehaviour
     private void UpdateHeldFluidContainerPosition()
     {
         if (playerCamera == null || heldFluidContainer == null) return;
-        
+
         float headBobOffset = playerCamera.transform.localPosition.y - _cameraDefaultYPosition;
         Vector3 baseTarget = playerCamera.transform.position + playerCamera.transform.forward * currentHoldDistance;
         Vector3 finalTarget = baseTarget + (playerCamera.transform.up * headBobOffset);

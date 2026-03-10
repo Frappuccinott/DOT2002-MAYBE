@@ -4,8 +4,6 @@ public class PlayerCrosshair : MonoBehaviour
 {
     [Header("Crosshair Ayarları")]
     [SerializeField] private float size = 16f;
-    [SerializeField] private float thickness = 2f;
-    [SerializeField] private float gap = 4f;
     [SerializeField] private Color defaultColor = Color.white;
     [SerializeField] private Color outlineColor = new Color(0f, 0f, 0f, 0.5f);
     [SerializeField] private float outlineThickness = 1f;
@@ -14,8 +12,23 @@ public class PlayerCrosshair : MonoBehaviour
 
     private void Awake()
     {
-        crosshairTexture = new Texture2D(1, 1);
-        crosshairTexture.SetPixel(0, 0, Color.white);
+        // 64x64 çözünürlüklü ve içi dolu beyaz bir daire dokusu (texture) oluşturuyoruz
+        int texSize = 64;
+        crosshairTexture = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false);
+        
+        float radius = texSize / 2f;
+        float center = (texSize - 1) / 2f;
+
+        for (int x = 0; x < texSize; x++)
+        {
+            for (int y = 0; y < texSize; y++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                // Kenarları yumuşatmak (anti-aliasing) için alfayı aradaki farka göre ayarlıyoruz
+                float alpha = Mathf.Clamp01(radius - dist);
+                crosshairTexture.SetPixel(x, y, new Color(1, 1, 1, alpha));
+            }
+        }
         crosshairTexture.Apply();
     }
 
@@ -29,24 +42,19 @@ public class PlayerCrosshair : MonoBehaviour
         float cx = Screen.width / 2f;
         float cy = Screen.height / 2f;
 
-        if (outlineThickness > 0f) DrawCrosshair(cx, cy, outlineColor, outlineThickness);
-        DrawCrosshair(cx, cy, defaultColor, 0f);
+        if (outlineThickness > 0f) DrawCircle(cx, cy, outlineColor, outlineThickness);
+        DrawCircle(cx, cy, defaultColor, 0f);
     }
 
-    private void DrawCrosshair(float cx, float cy, Color color, float expand)
+    private void DrawCircle(float cx, float cy, Color color, float expand)
     {
         GUI.color = color;
+        
+        float currentSize = size + (expand * 2f);
+        float halfSize = currentSize / 2f;
 
-        float half = (thickness + expand * 2f) / 2f;
-        float inner = gap - expand;
-        float outer = size / 2f + expand;
-        float w = thickness + expand * 2f;
-        float len = outer - inner;
-
-        GUI.DrawTexture(new Rect(cx - half, cy - outer, w, len), crosshairTexture);
-        GUI.DrawTexture(new Rect(cx - half, cy + inner, w, len), crosshairTexture);
-        GUI.DrawTexture(new Rect(cx - outer, cy - half, len, w), crosshairTexture);
-        GUI.DrawTexture(new Rect(cx + inner, cy - half, len, w), crosshairTexture);
+        // Daireyi tam ekranın ortasına yerleştirecek şekilde çiziyoruz
+        GUI.DrawTexture(new Rect(cx - halfSize, cy - halfSize, currentSize, currentSize), crosshairTexture);
 
         GUI.color = Color.white;
     }
